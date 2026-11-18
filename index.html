@@ -50,6 +50,14 @@
   .head p{margin:4px 0 0;font-size:13px;color:var(--ink2)}
   .pill{background:var(--acc);color:#fff;border:0;cursor:pointer;text-decoration:none;font-weight:700;font-size:13px;border-radius:99px;padding:0 18px;min-height:44px;box-shadow:0 8px 20px rgba(242,113,28,.35)}
   .pill:hover{filter:brightness(1.08)}
+  .titolo{display:flex;align-items:center;gap:10px;min-width:0}
+  .tondo{width:40px;height:40px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:grid;place-items:center;flex:none}
+  .tondo:hover{background:rgba(255,255,255,.14)}
+  .nome-form{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .nome-form input{height:44px;flex:1 1 200px;min-width:0;max-width:360px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.28);color:#fff;padding:0 12px;font:800 18px Manrope,sans-serif;outline:0}
+  .nome-form input:focus{border-color:var(--acc)}
+  .nome-form .annulla{min-height:44px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:#fff;padding:0 16px;font-size:13px;font-weight:700;cursor:pointer}
+  .nome-err{flex-basis:100%;margin:0;font-size:12px;color:#ffb3a1}
 
   /* riquadri bianchi */
   .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
@@ -111,7 +119,19 @@
   <main class="glass">
     <div class="head">
       <div style="flex:1 1 260px">
-        <h1 id="title">Tutti i locali</h1>
+        <div class="titolo" id="titolo">
+          <h1 id="title">Tutti i locali</h1>
+          <button class="tondo" id="rinomina" type="button" aria-label="Modifica il nome del locale" title="Modifica nome" hidden>
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+          </button>
+        </div>
+        <form class="nome-form" id="nome-form" hidden>
+          <label for="nome-input" style="position:absolute;left:-9999px">Nome del locale</label>
+          <input id="nome-input" type="text" maxlength="40" autocomplete="off" required>
+          <button class="pill" type="submit">Salva</button>
+          <button class="annulla" type="button" id="nome-annulla">Annulla</button>
+          <p class="nome-err" id="nome-err" hidden></p>
+        </form>
         <p id="subtitle">Cinque locali · serata di oggi</p>
       </div>
       <a class="chip" href="https://keep.google.com" target="_blank" rel="noopener noreferrer">Google Keep ↗</a>
@@ -152,15 +172,36 @@
 <div class="seg glass" id="seg" role="navigation" aria-label="Locali"></div>
 
 <script>
-  const VENUES = ["Room 26", "In Space", "Zona Calda", "Grotta Aurelia", "Sunbay"];
-  const nav = document.getElementById("nav");
-  const seg = document.getElementById("seg");
-  const overview = document.getElementById("overview");
-  const venue = document.getElementById("venue");
-  const title = document.getElementById("title");
-  const subtitle = document.getElementById("subtitle");
+  // id fissi: il nome mostrato si può cambiare, l'id resta lo stesso
+  const VENUES = [
+    { id: "room26", nome: "Room 26" },
+    { id: "inspace", nome: "In Space" },
+    { id: "zonacalda", nome: "Zona Calda" },
+    { id: "grottaaurelia", nome: "Grotta Aurelia" },
+    { id: "sunbay", nome: "Sunbay" },
+  ];
+  const CHIAVE_NOMI = "locali-nomi";
+  const $ = (id) => document.getElementById(id);
+  const nav = $("nav"), seg = $("seg"), overview = $("overview"), venue = $("venue");
+  const title = $("title"), subtitle = $("subtitle");
+  const titolo = $("titolo"), rinomina = $("rinomina");
+  const form = $("nome-form"), input = $("nome-input"), err = $("nome-err");
+  let corrente = "all";
 
   const ICON_ALL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>';
+
+  // nomi cambiati: restano su questo dispositivo
+  function leggiNomi() {
+    try { return JSON.parse(localStorage.getItem(CHIAVE_NOMI)) || {}; } catch (e) { return {}; }
+  }
+  function salvaNomi() {
+    const m = {};
+    VENUES.forEach((v) => { m[v.id] = v.nome; });
+    try { localStorage.setItem(CHIAVE_NOMI, JSON.stringify(m)); return true; } catch (e) { return false; }
+  }
+  const salvati = leggiNomi();
+  VENUES.forEach((v) => { if (typeof salvati[v.id] === "string" && salvati[v.id].trim()) v.nome = salvati[v.id]; });
+  const trova = (id) => VENUES.find((v) => v.id === id);
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -171,20 +212,54 @@
 
   // sigla per la barra a icone: iniziali delle parole, oppure lettera + numero ("Room 26" → "R26")
   function sigla(n) {
-    const p = n.split(/\s+/);
-    if (p.length === 1) return n.slice(0, 2).toUpperCase();
-    if (/^\d+$/.test(p[1])) return p[0][0].toUpperCase() + p[1];
+    const p = n.trim().split(/\s+/);
+    if (p.length === 1) return n.trim().slice(0, 2).toUpperCase();
+    if (/^\d+$/.test(p[1])) return p[0][0].toUpperCase() + p[1].slice(0, 2);
     return p.map((w) => w[0]).join("").slice(0, 2).toUpperCase();
   }
 
+  function chiudiModifica() {
+    form.hidden = true;
+    titolo.hidden = false;
+    err.hidden = true;
+  }
+
   function select(sel) {
+    corrente = sel;
+    chiudiModifica();
     const isAll = sel === "all";
-    title.textContent = isAll ? "Tutti i locali" : sel;
+    title.textContent = isAll ? "Tutti i locali" : trova(sel).nome;
     subtitle.textContent = isAll ? "Cinque locali · serata di oggi" : "Serata di oggi";
+    rinomina.hidden = isAll;
     overview.hidden = !isAll;
     venue.hidden = isAll;
     document.querySelectorAll("[data-id]").forEach((b) => {
       b.setAttribute("aria-current", String(b.dataset.id === sel));
+    });
+  }
+
+  function disegna() {
+    nav.innerHTML = ""; seg.innerHTML = ""; overview.innerHTML = "";
+    navButton("all", "Panoramica");
+    VENUES.forEach((v) => navButton(v.id, v.nome));
+    VENUES.forEach((v) => {
+      const c = el("button", "tile locale");
+      c.type = "button";
+      const h = el("div", "tile-h");
+      h.appendChild(el("span", "nome", v.nome));
+      h.appendChild(el("span", "", "Apri ›"));
+      c.appendChild(h);
+      const dati = el("div", "dati");
+      ["Ingressi", "Tavoli", "Incasso"].forEach((l) => {
+        const d = el("div");
+        d.appendChild(el("b", "mono", "—"));
+        d.appendChild(el("small", "", l));
+        dati.appendChild(d);
+      });
+      c.appendChild(dati);
+      c.appendChild(el("div", "s", "Nessuna serata attiva"));
+      c.addEventListener("click", () => select(v.id));
+      overview.appendChild(c);
     });
   }
 
@@ -207,29 +282,32 @@
     seg.appendChild(s);
   }
 
-  navButton("all", "Panoramica");
-  VENUES.forEach((n) => navButton(n, n));
-
-  VENUES.forEach((n) => {
-    const c = el("button", "tile locale");
-    c.type = "button";
-    const h = el("div", "tile-h");
-    h.appendChild(el("span", "nome", n));
-    h.appendChild(el("span", "", "Apri ›"));
-    c.appendChild(h);
-    const dati = el("div", "dati");
-    ["Ingressi", "Tavoli", "Incasso"].forEach((l) => {
-      const d = el("div");
-      d.appendChild(el("b", "mono", "—"));
-      d.appendChild(el("small", "", l));
-      dati.appendChild(d);
-    });
-    c.appendChild(dati);
-    c.appendChild(el("div", "s", "Nessuna serata attiva"));
-    c.addEventListener("click", () => select(n));
-    overview.appendChild(c);
+  // modifica del nome
+  rinomina.addEventListener("click", () => {
+    input.value = trova(corrente).nome;
+    titolo.hidden = true;
+    form.hidden = false;
+    input.focus();
+    input.select();
+  });
+  $("nome-annulla").addEventListener("click", () => { chiudiModifica(); rinomina.focus(); });
+  input.addEventListener("keydown", (e) => { if (e.key === "Escape") { chiudiModifica(); rinomina.focus(); } });
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const nome = input.value.trim().replace(/\s+/g, " ");
+    const v = trova(corrente);
+    const doppio = VENUES.some((x) => x.id !== v.id && x.nome.toLowerCase() === nome.toLowerCase());
+    if (!nome) { err.textContent = "Scrivi un nome."; err.hidden = false; return; }
+    if (doppio) { err.textContent = "C'è già un locale con questo nome."; err.hidden = false; return; }
+    v.nome = nome;
+    const ok = salvaNomi();
+    disegna();
+    select(v.id);
+    if (!ok) subtitle.textContent = "Nome cambiato, ma questo browser non lo ricorderà dopo la chiusura";
+    rinomina.focus();
   });
 
+  disegna();
   select("all");
 </script>
 </body>

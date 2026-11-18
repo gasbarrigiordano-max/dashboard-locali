@@ -2,101 +2,140 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17120f">
 <title>Dashboard locali</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #101216;
-    --panel: #181B21;
-    --border: #2A2F38;
-    --text: #F2F3F5;
-    --muted: #A3AAB5;
-    --accent: #F5B544;
-    --accent-ink: #1A1304;
+  /* stesso tema della Dashboard di Giordano (dashgio) */
+  :root{
+    --ink:#fff; --ink2:rgba(255,255,255,.74); --ink3:rgba(255,255,255,.6);
+    --acc:#F2711C; --acc-soft:#ffb07a; --acc-ink:#a04a0c;
+    --glass:rgba(40,32,28,.55); --line:rgba(255,255,255,.10);
+    --tile:rgba(255,255,255,.94); --tile-ink:#1d1a18; --tile-ink2:#5e5650;
+    --ok:#7fd3a8;
+    --sat:env(safe-area-inset-top); --sab:env(safe-area-inset-bottom);
   }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 15px; }
-  button { font-family: inherit; }
-  h1, h2, .brand { font-family: "Space Grotesk", sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{min-height:100vh;font-family:Manrope,system-ui,sans-serif;color:var(--ink);background:#17120f;-webkit-font-smoothing:antialiased}
+  body::before{content:'';position:fixed;inset:0;z-index:-1;background:
+    radial-gradient(40% 35% at 18% 12%, rgba(255,196,140,.35), transparent 70%),
+    radial-gradient(35% 40% at 85% 20%, rgba(120,90,70,.55), transparent 70%),
+    radial-gradient(45% 40% at 70% 85%, rgba(242,113,28,.18), transparent 70%),
+    radial-gradient(40% 45% at 10% 90%, rgba(90,70,60,.6), transparent 70%),
+    linear-gradient(160deg,#3a2d25 0%,#241b16 55%,#15100d 100%)}
+  a{color:var(--acc-soft)} a:hover{color:#ffd2b0}
+  button{font:inherit;color:inherit}
+  .mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+  .glass{background:var(--glass);-webkit-backdrop-filter:blur(26px) saturate(140%);backdrop-filter:blur(26px) saturate(140%);border:1px solid var(--line);box-shadow:0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)}
+  .wrap{max-width:1440px;margin:0 auto;padding:calc(20px + var(--sat)) 20px 18px;display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
 
-  .app { display: flex; flex-wrap: wrap; min-height: 100vh; }
-  nav { flex: 1 1 240px; padding: 24px 16px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-  .brand { font-weight: 700; font-size: 20px; padding: 0 8px 16px; }
-  .nav-btn { min-height: 44px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; border: 1px solid transparent; background: transparent; color: var(--text); }
-  .nav-btn[aria-current="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
-  .tools { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
-  .tools small { padding: 0 8px; font-size: 13px; color: var(--muted); }
-  .tool-link { min-height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 500; }
-  .tool-link span:last-child { color: var(--muted); font-size: 13px; }
+  /* barra dei locali */
+  nav{border-radius:26px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:10px;flex:0 0 auto;align-self:flex-start;position:sticky;top:20px;z-index:10}
+  .brand{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:var(--acc);font-weight:800;font-size:16px}
+  .navbtn{width:44px;height:44px;border-radius:14px;border:0;background:transparent;color:var(--ink3);display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;position:relative;font-size:12.5px;font-weight:800;letter-spacing:.02em}
+  .navbtn:hover{background:rgba(255,255,255,.08);color:#fff}
+  .navbtn[aria-current="true"]{background:var(--acc);color:#fff;box-shadow:0 8px 20px rgba(242,113,28,.45)}
+  .navbtn .tip{position:absolute;left:54px;z-index:11;box-shadow:0 6px 18px rgba(0,0,0,.35);white-space:nowrap;background:rgba(0,0,0,.75);color:#fff;font-size:12px;font-weight:600;letter-spacing:0;padding:6px 10px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .15s}
+  .navbtn:hover .tip,.navbtn:focus-visible .tip{opacity:1}
+  .nav-sep{width:28px;height:1px;background:var(--line);margin:2px 0}
+  .nav-spazio{flex:1 1 auto;min-height:24px}
 
-  main { flex: 999 1 560px; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
-  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
-  h1 { margin: 0; font-size: 32px; font-weight: 700; }
-  .sub { color: var(--muted); margin-top: 4px; }
-  .primary { min-height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 15px; cursor: pointer; }
+  main{border-radius:28px;padding:24px;flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:18px}
+  .head{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
+  .head h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.01em}
+  .head p{margin:4px 0 0;font-size:13px;color:var(--ink2)}
+  .pill{background:var(--acc);color:#fff;border:0;cursor:pointer;text-decoration:none;font-weight:700;font-size:13px;border-radius:99px;padding:0 18px;min-height:44px;box-shadow:0 8px 20px rgba(242,113,28,.35)}
+  .pill:hover{filter:brightness(1.08)}
 
-  .row { display: flex; flex-wrap: wrap; gap: 16px; }
-  .card { flex: 1 1 240px; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
-  .venue-card { text-align: left; color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 16px; font-size: 15px; }
-  .venue-card .name { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 22px; }
-  .stats { display: flex; gap: 24px; }
-  .stat b { display: block; font-size: 24px; font-weight: 600; }
-  .stat span, .muted { font-size: 13px; color: var(--muted); }
-  .kpi { flex: 1 1 170px; display: flex; flex-direction: column; gap: 6px; }
-  .kpi .v { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 32px; }
-  .kpi .l { font-size: 13px; color: var(--muted); }
+  /* riquadri bianchi */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+  .tile{background:var(--tile);border:0;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;color:var(--tile-ink);text-align:left;text-decoration:none;transition:transform .15s}
+  button.tile{cursor:pointer}
+  button.tile:hover{transform:translateY(-3px)}
+  .tile-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .tile-h small{font-size:12px;font-weight:700;color:#3c3631}
+  .tile-h span{font-size:11px;font-weight:700;color:var(--acc-ink)}
+  .tile .v{font-size:28px;font-weight:700;color:var(--acc-ink);letter-spacing:-.02em}
+  .tile .s{font-size:11.5px;color:var(--tile-ink2)}
 
-  .panel { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-  .panel h2 { margin: 0; font-size: 18px; }
-  .bar { height: 12px; border-radius: 6px; background: var(--border); }
-  .bar div { height: 12px; border-radius: 6px; background: var(--accent); width: 0%; }
-  .scroll { overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th { text-align: left; padding: 10px 8px; font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--border); }
-  td { padding: 24px 8px; color: var(--muted); }
-  [hidden] { display: none !important; }
+  .locale .nome{font-size:18px;font-weight:800;letter-spacing:-.01em;color:var(--tile-ink)}
+  .locale .dati{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
+  .locale .dati div{background:#f3ece6;border-radius:12px;padding:8px 4px}
+  .locale .dati b{display:block;font-size:15px;color:var(--acc-ink)}
+  .locale .dati small{font-size:10.5px;color:var(--tile-ink2);font-weight:600}
+
+  .riga2{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+  .sez h2{margin:0;font-size:14px;font-weight:800;padding-left:10px;border-left:3px solid var(--acc);color:var(--tile-ink)}
+  .bar{height:12px;border-radius:99px;background:#efe6df}
+  .bar div{height:12px;border-radius:99px;background:var(--acc);width:0%}
+  .scroll{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:10px 8px;font-size:11.5px;font-weight:700;color:var(--tile-ink2);border-bottom:1px solid #e8dfd8;white-space:nowrap}
+  td{padding:22px 8px;color:var(--tile-ink2)}
+
+  /* strumenti */
+  .chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;font-size:12px;font-weight:700;border-radius:99px;padding:0 12px;background:rgba(255,255,255,.08);border:1px solid var(--line);color:#fff;text-decoration:none}
+  .chip:hover{background:rgba(255,255,255,.14);color:#fff}
+
+  /* barra in basso */
+  .seg{width:fit-content;max-width:calc(100% - 24px);margin:0 auto calc(20px + var(--sab));border-radius:99px;padding:5px;display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{background:transparent;border:0;cursor:pointer;color:var(--ink2);font-weight:600;font-size:12.5px;padding:10px 14px;border-radius:99px;white-space:nowrap;flex:0 0 auto}
+  .seg button[aria-current="true"]{background:var(--acc);color:#fff}
+
+  @media (max-width:700px){
+    .wrap{padding:calc(12px + var(--sat)) 12px 12px;gap:12px}
+    nav{display:none}
+    main{padding:18px;border-radius:22px}
+  }
+  [hidden]{display:none !important}
 </style>
 </head>
 <body>
-<div class="app">
-  <nav aria-label="Locali">
-    <div class="brand">I tuoi locali</div>
-    <div id="nav" style="display:flex;flex-direction:column;gap:8px"></div>
-    <div class="tools">
-      <small>Strumenti</small>
-      <a class="tool-link" href="https://keep.google.com" target="_blank" rel="noopener noreferrer"><span>Google Keep</span><span>Apri ↗</span></a>
-    </div>
+<div class="wrap">
+
+  <nav class="glass" aria-label="Locali">
+    <div class="brand" aria-hidden="true">L</div>
+    <div id="nav" style="display:flex;flex-direction:column;gap:10px;align-items:center"></div>
+    <div class="nav-spazio"></div>
+    <a class="navbtn" href="https://keep.google.com" target="_blank" rel="noopener noreferrer" aria-label="Google Keep (si apre in una nuova scheda)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+      <span class="tip">Google Keep ↗</span>
+    </a>
   </nav>
 
-  <main>
-    <header>
-      <div>
+  <main class="glass">
+    <div class="head">
+      <div style="flex:1 1 260px">
         <h1 id="title">Tutti i locali</h1>
-        <div class="sub" id="subtitle">Cinque locali · serata di oggi</div>
+        <p id="subtitle">Cinque locali · serata di oggi</p>
       </div>
-      <button class="primary" type="button">Nuova serata</button>
-    </header>
+      <a class="chip" href="https://keep.google.com" target="_blank" rel="noopener noreferrer">Google Keep ↗</a>
+      <button class="pill" type="button">Nuova serata</button>
+    </div>
 
-    <section id="overview" class="row" aria-label="Panoramica"></section>
+    <section id="overview" class="tiles" aria-label="Panoramica"></section>
 
-    <div id="venue" hidden style="display:flex;flex-direction:column;gap:24px">
-      <section class="row" aria-label="Indicatori">
-        <div class="card kpi"><span class="l">Ingressi in pista</span><span class="v">—</span></div>
-        <div class="card kpi"><span class="l">Tavoli privé</span><span class="v">—</span></div>
-        <div class="card kpi"><span class="l">Incasso serata</span><span class="v">—</span></div>
-        <div class="card kpi"><span class="l">Bottiglie ordinate</span><span class="v">—</span></div>
+    <div id="venue" hidden style="display:flex;flex-direction:column;gap:18px">
+      <section class="tiles" aria-label="Indicatori">
+        <div class="tile"><div class="tile-h"><small>Ingressi in pista</small><span>QR PR</span></div><div class="v mono">—</div><div class="s">Nessun ingresso registrato</div></div>
+        <div class="tile"><div class="tile-h"><small>Tavoli privé</small><span>Privé</span></div><div class="v mono">—</div><div class="s">Nessun tavolo registrato</div></div>
+        <div class="tile"><div class="tile-h"><small>Incasso serata</small><span>Cassa</span></div><div class="v mono">—</div><div class="s">Nessun incasso registrato</div></div>
+        <div class="tile"><div class="tile-h"><small>Bottiglie ordinate</small><span>Bar</span></div><div class="v mono">—</div><div class="s">Nessuna bottiglia registrata</div></div>
       </section>
-      <section class="row" style="align-items:flex-start">
-        <div class="panel" style="flex:1 1 260px">
-          <h2>Ingressi in pista</h2>
+      <section class="riga2">
+        <div class="tile" style="flex:1 1 260px">
+          <div class="sez"><h2>Ingressi in pista</h2></div>
           <div class="bar"><div></div></div>
-          <div class="muted">0 ingressi · capienza [DA IMPOSTARE]</div>
-          <div class="muted">Gli ingressi arrivano dalla scansione dei QR dei PR.</div>
+          <div class="s">0 ingressi · capienza [DA IMPOSTARE]</div>
+          <div class="s">Gli ingressi arrivano dalla scansione dei QR dei PR.</div>
         </div>
-        <div class="panel" style="flex:2 1 420px">
-          <h2>Tavoli privé</h2>
+        <div class="tile" style="flex:2 1 420px">
+          <div class="sez"><h2>Tavoli privé</h2></div>
           <div class="scroll">
             <table>
               <thead><tr><th>Tavolo</th><th>PR</th><th>Persone</th><th>Bottiglie</th><th>Stato</th></tr></thead>
@@ -107,15 +146,21 @@
       </section>
     </div>
   </main>
+
 </div>
+
+<div class="seg glass" id="seg" role="navigation" aria-label="Locali"></div>
 
 <script>
   const VENUES = ["Room 26", "In Space", "Zona Calda", "Grotta Aurelia", "Sunbay"];
   const nav = document.getElementById("nav");
+  const seg = document.getElementById("seg");
   const overview = document.getElementById("overview");
   const venue = document.getElementById("venue");
   const title = document.getElementById("title");
   const subtitle = document.getElementById("subtitle");
+
+  const ICON_ALL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>';
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -124,41 +169,63 @@
     return e;
   }
 
+  // sigla per la barra a icone: iniziali delle parole, oppure lettera + numero ("Room 26" → "R26")
+  function sigla(n) {
+    const p = n.split(/\s+/);
+    if (p.length === 1) return n.slice(0, 2).toUpperCase();
+    if (/^\d+$/.test(p[1])) return p[0][0].toUpperCase() + p[1];
+    return p.map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+  }
+
   function select(sel) {
     const isAll = sel === "all";
     title.textContent = isAll ? "Tutti i locali" : sel;
     subtitle.textContent = isAll ? "Cinque locali · serata di oggi" : "Serata di oggi";
     overview.hidden = !isAll;
     venue.hidden = isAll;
-    nav.querySelectorAll("button").forEach((b) => {
+    document.querySelectorAll("[data-id]").forEach((b) => {
       b.setAttribute("aria-current", String(b.dataset.id === sel));
     });
   }
 
   function navButton(id, label) {
-    const b = el("button", "nav-btn", label);
+    const b = el("button", "navbtn");
     b.type = "button";
     b.dataset.id = id;
+    b.setAttribute("aria-label", label);
+    if (id === "all") b.innerHTML = ICON_ALL;
+    else b.appendChild(el("span", "", sigla(label)));
+    b.appendChild(el("span", "tip", label));
     b.addEventListener("click", () => select(id));
     nav.appendChild(b);
+    if (id === "all") nav.appendChild(el("div", "nav-sep"));
+
+    const s = el("button", "", label);
+    s.type = "button";
+    s.dataset.id = id;
+    s.addEventListener("click", () => select(id));
+    seg.appendChild(s);
   }
 
   navButton("all", "Panoramica");
   VENUES.forEach((n) => navButton(n, n));
 
   VENUES.forEach((n) => {
-    const c = el("button", "card venue-card");
+    const c = el("button", "tile locale");
     c.type = "button";
-    c.appendChild(el("span", "name", n));
-    const stats = el("span", "stats");
+    const h = el("div", "tile-h");
+    h.appendChild(el("span", "nome", n));
+    h.appendChild(el("span", "", "Apri ›"));
+    c.appendChild(h);
+    const dati = el("div", "dati");
     ["Ingressi", "Tavoli", "Incasso"].forEach((l) => {
-      const s = el("span", "stat");
-      s.appendChild(el("b", "", "—"));
-      s.appendChild(el("span", "", l));
-      stats.appendChild(s);
+      const d = el("div");
+      d.appendChild(el("b", "mono", "—"));
+      d.appendChild(el("small", "", l));
+      dati.appendChild(d);
     });
-    c.appendChild(stats);
-    c.appendChild(el("span", "muted", "Nessuna serata attiva"));
+    c.appendChild(dati);
+    c.appendChild(el("div", "s", "Nessuna serata attiva"));
     c.addEventListener("click", () => select(n));
     overview.appendChild(c);
   });

@@ -2,6 +2,9 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
+<!-- come in dashgio: script solo da qui e da gstatic (Firebase); connessioni solo a Firebase -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.gstatic.com; frame-src https://contabilit-1a500.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#17120f">
 <title>Dashboard locali</title>
@@ -114,6 +117,10 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
       <span class="tip">Google Keep ↗</span>
     </a>
+    <button class="navbtn" id="blocca" type="button" aria-label="Blocca la cassaforte">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+      <span class="tip">Blocca</span>
+    </button>
   </nav>
 
   <main class="glass">
@@ -171,6 +178,7 @@
 
 <div class="seg glass" id="seg" role="navigation" aria-label="Locali"></div>
 
+<script src="comune/cassaforte.js"></script>
 <script>
   // id fissi: il nome mostrato si può cambiare, l'id resta lo stesso
   const VENUES = [
@@ -180,7 +188,10 @@
     { id: "grottaaurelia", nome: "Grotta Aurelia" },
     { id: "sunbay", nome: "Sunbay" },
   ];
-  const CHIAVE_NOMI = "locali-nomi";
+  // Dati nella cassaforte di dashgio (stesso account, stessa passphrase): bilancio/{uid}/locali/locali,
+  // cifrato nel browser, = {"v":1,"locali":[{"id","nome"}]}
+  const COL = "locali", VOCE = "locali";
+  const CHIAVE_NOMI = "locali-nomi"; // vecchi nomi salvati solo nel browser: si portano nel cloud la prima volta
   const $ = (id) => document.getElementById(id);
   const nav = $("nav"), seg = $("seg"), overview = $("overview"), venue = $("venue");
   const title = $("title"), subtitle = $("subtitle");
@@ -190,18 +201,50 @@
 
   const ICON_ALL = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>';
 
-  // nomi cambiati: restano su questo dispositivo
-  function leggiNomi() {
-    try { return JSON.parse(localStorage.getItem(CHIAVE_NOMI)) || {}; } catch (e) { return {}; }
-  }
-  function salvaNomi() {
-    const m = {};
-    VENUES.forEach((v) => { m[v.id] = v.nome; });
-    try { localStorage.setItem(CHIAVE_NOMI, JSON.stringify(m)); return true; } catch (e) { return false; }
-  }
-  const salvati = leggiNomi();
-  VENUES.forEach((v) => { if (typeof salvati[v.id] === "string" && salvati[v.id].trim()) v.nome = salvati[v.id]; });
   const trova = (id) => VENUES.find((v) => v.id === id);
+
+  // --- cloud (cassaforte comune)
+  function applica(txt) {
+    let d = null;
+    try { d = JSON.parse(txt); } catch (e) {}
+    ((d && d.locali) || []).forEach((x) => {
+      const v = x && trova(x.id);
+      if (v && typeof x.nome === "string" && x.nome.trim()) v.nome = x.nome.trim().slice(0, 40);
+    });
+  }
+  const testo = () => JSON.stringify({ v: 1, locali: VENUES.map(({ id, nome }) => ({ id, nome })) });
+  async function salvaCloud() {
+    const txt = testo();
+    const fin = await Cassaforte.scrivi(COL, VOCE, txt);
+    // un altro dispositivo aveva salvato nel frattempo: si tiene l'unione
+    if (fin !== txt) { applica(fin); Cassaforte.adottato(COL, VOCE); }
+  }
+  function msgErrore(e) {
+    if (e && e.code === "permission-denied") return "Firebase non accetta ancora i locali: va aggiunta la sezione \"locali\" alle regole Firestore.";
+    if (e && e.code === "unavailable") return "Nessuna connessione: nome non salvato.";
+    return "Nome non salvato: " + ((e && (e.code || e.message)) || "errore");
+  }
+  async function carica() {
+    subtitle.textContent = "Carico i locali…";
+    try {
+      const txt = await Cassaforte.leggi(COL, VOCE);
+      if (txt) applica(txt);
+      else {
+        // prima volta: si portano nel cloud i nomi cambiati prima su questo browser
+        let vecchi = {};
+        try { vecchi = JSON.parse(localStorage.getItem(CHIAVE_NOMI)) || {}; } catch (e) {}
+        VENUES.forEach((v) => { if (typeof vecchi[v.id] === "string" && vecchi[v.id].trim()) v.nome = vecchi[v.id].trim(); });
+        await salvaCloud();
+      }
+      try { localStorage.removeItem(CHIAVE_NOMI); } catch (e) {}
+      disegna(); select(corrente);
+    } catch (e) {
+      disegna(); select(corrente);
+      subtitle.textContent = e && e.code === "permission-denied"
+        ? "Firebase non accetta ancora i locali: aggiorna le regole Firestore (vedi firestore.rules)"
+        : "Non riesco a leggere i locali dal cloud: " + ((e && (e.code || e.message)) || "errore");
+    }
+  }
 
   function el(tag, cls, text) {
     const e = document.createElement(tag);
@@ -292,23 +335,40 @@
   });
   $("nome-annulla").addEventListener("click", () => { chiudiModifica(); rinomina.focus(); });
   input.addEventListener("keydown", (e) => { if (e.key === "Escape") { chiudiModifica(); rinomina.focus(); } });
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const nome = input.value.trim().replace(/\s+/g, " ");
     const v = trova(corrente);
     const doppio = VENUES.some((x) => x.id !== v.id && x.nome.toLowerCase() === nome.toLowerCase());
     if (!nome) { err.textContent = "Scrivi un nome."; err.hidden = false; return; }
     if (doppio) { err.textContent = "C'è già un locale con questo nome."; err.hidden = false; return; }
+    const prima = v.nome, salva = form.querySelector(".pill");
+    salva.disabled = true; salva.textContent = "Salvo…"; err.hidden = true;
     v.nome = nome;
-    const ok = salvaNomi();
-    disegna();
-    select(v.id);
-    if (!ok) subtitle.textContent = "Nome cambiato, ma questo browser non lo ricorderà dopo la chiusura";
-    rinomina.focus();
+    try {
+      await salvaCloud();
+      disegna();
+      select(v.id);
+      rinomina.focus();
+    } catch (x) {
+      v.nome = prima; // nel cloud non è arrivato: resta il nome di prima
+      err.textContent = msgErrore(x); err.hidden = false;
+    } finally {
+      salva.disabled = false; salva.textContent = "Salva";
+    }
   });
 
+  $("blocca").addEventListener("click", async () => {
+    await Cassaforte.blocca();
+    location.reload();
+  });
+
+  // avvio: accesso e sblocco come in dashgio (se è già aperta lì, su questo dispositivo si apre da sola)
   disegna();
   select("all");
+  Cassaforte.porta({ nome: "la Dashboard locali", bilancio: "/dashgio/bilancio/" })
+    .then(carica)
+    .catch((e) => { subtitle.textContent = "Cassaforte non disponibile: " + ((e && e.message) || e); });
 </script>
 </body>
 </html>

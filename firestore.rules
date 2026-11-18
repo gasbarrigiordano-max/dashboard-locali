@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// Regole di dashgio (stesso progetto contabilit-1a500) con in più la sezione 'locali' della Dashboard locali.
+// Sono le regole di TUTTO il progetto: pubblicandole sostituiscono quelle attuali.
+
+// Dashboard di Giordano: un solo utente legge e scrive solo bilancio/{proprio uid}/...
+// Tutto è cifrato nel browser con la passphrase: su Firestore ci sono solo sale, iv e testo cifrato.
+// Sostituisci IL_TUO_UID con l'UID del tuo utente (Authentication → Utenti, colonna "UID utente").
+//
+// Difese oltre al proprietario:
+// - ogni documento cifrato ha solo i campi previsti (kid, iv, ct, z, rev, updated), con il tipo giusto;
+// - kid = sale attuale: un dispositivo con la passphrase vecchia non può scrivere sopra i dati ricifrati;
+// - rev (numero del salvataggio) non torna mai indietro: un dispositivo con dati vecchi non può riscrivere sopra quelli
+//   più nuovi (deve prima unirli, come fanno le app);
+// - niente cancellazioni, tranne i backup automatici vecchi (rotazione); la cassaforte non si cancella.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null
+        && request.auth.uid == uid
+        && uid == 'IL_TUO_UID';
+    }
+    function sale(uid) {
+      return getAfter(/databases/$(database)/documents/bilancio/$(uid)).data.salt;
+    }
+    function cifrato(d) {
+      return d.keys().hasOnly(['kid', 'iv', 'ct', 'z', 'rev', 'updated'])
+        && d.kid is string && d.iv is string && d.iv.size() <= 32
+        && d.ct is string && d.ct.size() > 0
+        && (!('z' in d) || d.z == 1)
+        && (!('rev' in d) || d.rev is int)
+        && (!('updated' in d) || d.updated == request.time);
+    }
+    function revOk() {
+      return resource == null || !('rev' in resource.data)
+        || ('rev' in request.resource.data && request.resource.data.rev > resource.data.rev);
+    }
+
+    // documento "cassaforte": sale, iterazioni e verifica della passphrase (niente dati in chiaro)
+    match /bilancio/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.salt is string
+        && request.resource.data.iter is int && request.resource.data.iter >= 100000;
+      allow delete: if false;
+
+      // sezioni cifrate del Bilancio (tx, conti, rate, carte…: qualsiasi nome in minuscolo)
+      match /sez/{sez} {
+        allow read: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && sez.matches('^[a-z]{2,16}$')
+          && cifrato(request.resource.data)
+          && request.resource.data.kid == sale(uid)
+          && revOk();
+        allow delete: if false;
+      }
+
+      // app nella stessa cassaforte: Mezzi (giornale), Palestra, Dashboard (Lavoro, Google, backup) e Dashboard locali (locali). Una voce cifrata per
+      // chiave (le voci grandi in parti voce__p1, __p2…), stesso controllo sul sale e sulla revisione delle sezioni
+      match /{app}/{voce} {
+        allow read: if isOwner(uid) && app in ['giornale', 'palestra', 'dashboard', 'locali'];
+        allow create, update: if isOwner(uid)
+          && app in ['giornale', 'palestra', 'dashboard', 'locali']
+          && voce.matches('^[A-Za-z0-9_]{1,60}$')
+          && cifrato(request.resource.data)
+          && request.resource.data.kid == sale(uid)
+          && revOk();
+        // si cancellano solo i backup automatici vecchi (e le loro parti)
+        allow delete: if isOwner(uid) && app == 'dashboard'
+          && voce.matches('^bk_[0-9]{8}(_[0-9]{6})?(__p[0-9]+)?$');
+      }
+    }
+  }
+}

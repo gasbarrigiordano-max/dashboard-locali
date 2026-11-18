@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard locali</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #101216;
+    --panel: #181B21;
+    --border: #2A2F38;
+    --text: #F2F3F5;
+    --muted: #A3AAB5;
+    --accent: #F5B544;
+    --accent-ink: #1A1304;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: Inter, system-ui, sans-serif; font-size: 15px; }
+  button { font-family: inherit; }
+  h1, h2, .brand { font-family: "Space Grotesk", sans-serif; }
+
+  .app { display: flex; flex-wrap: wrap; min-height: 100vh; }
+  nav { flex: 1 1 240px; padding: 24px 16px; border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .brand { font-weight: 700; font-size: 20px; padding: 0 8px 16px; }
+  .nav-btn { min-height: 44px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 500; text-align: left; cursor: pointer; border: 1px solid transparent; background: transparent; color: var(--text); }
+  .nav-btn[aria-current="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+  .tools { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
+  .tools small { padding: 0 8px; font-size: 13px; color: var(--muted); }
+  .tool-link { min-height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border); border-radius: 10px; color: var(--text); text-decoration: none; font-weight: 500; }
+  .tool-link span:last-child { color: var(--muted); font-size: 13px; }
+
+  main { flex: 999 1 560px; min-width: 0; padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  h1 { margin: 0; font-size: 32px; font-weight: 700; }
+  .sub { color: var(--muted); margin-top: 4px; }
+  .primary { min-height: 44px; padding: 0 20px; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 15px; cursor: pointer; }
+
+  .row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .card { flex: 1 1 240px; padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+  .venue-card { text-align: left; color: var(--text); cursor: pointer; display: flex; flex-direction: column; gap: 16px; font-size: 15px; }
+  .venue-card .name { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 22px; }
+  .stats { display: flex; gap: 24px; }
+  .stat b { display: block; font-size: 24px; font-weight: 600; }
+  .stat span, .muted { font-size: 13px; color: var(--muted); }
+  .kpi { flex: 1 1 170px; display: flex; flex-direction: column; gap: 6px; }
+  .kpi .v { font-family: "Space Grotesk", sans-serif; font-weight: 700; font-size: 32px; }
+  .kpi .l { font-size: 13px; color: var(--muted); }
+
+  .panel { padding: 20px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel h2 { margin: 0; font-size: 18px; }
+  .bar { height: 12px; border-radius: 6px; background: var(--border); }
+  .bar div { height: 12px; border-radius: 6px; background: var(--accent); width: 0%; }
+  .scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; padding: 10px 8px; font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--border); }
+  td { padding: 24px 8px; color: var(--muted); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav aria-label="Locali">
+    <div class="brand">I tuoi locali</div>
+    <div id="nav" style="display:flex;flex-direction:column;gap:8px"></div>
+    <div class="tools">
+      <small>Strumenti</small>
+      <a class="tool-link" href="https://keep.google.com" target="_blank" rel="noopener noreferrer"><span>Google Keep</span><span>Apri ↗</span></a>
+    </div>
+  </nav>
+
+  <main>
+    <header>
+      <div>
+        <h1 id="title">Tutti i locali</h1>
+        <div class="sub" id="subtitle">Cinque locali · serata di oggi</div>
+      </div>
+      <button class="primary" type="button">Nuova serata</button>
+    </header>
+
+    <section id="overview" class="row" aria-label="Panoramica"></section>
+
+    <div id="venue" hidden style="display:flex;flex-direction:column;gap:24px">
+      <section class="row" aria-label="Indicatori">
+        <div class="card kpi"><span class="l">Ingressi in pista</span><span class="v">—</span></div>
+        <div class="card kpi"><span class="l">Tavoli privé</span><span class="v">—</span></div>
+        <div class="card kpi"><span class="l">Incasso serata</span><span class="v">—</span></div>
+        <div class="card kpi"><span class="l">Bottiglie ordinate</span><span class="v">—</span></div>
+      </section>
+      <section class="row" style="align-items:flex-start">
+        <div class="panel" style="flex:1 1 260px">
+          <h2>Ingressi in pista</h2>
+          <div class="bar"><div></div></div>
+          <div class="muted">0 ingressi · capienza [DA IMPOSTARE]</div>
+          <div class="muted">Gli ingressi arrivano dalla scansione dei QR dei PR.</div>
+        </div>
+        <div class="panel" style="flex:2 1 420px">
+          <h2>Tavoli privé</h2>
+          <div class="scroll">
+            <table>
+              <thead><tr><th>Tavolo</th><th>PR</th><th>Persone</th><th>Bottiglie</th><th>Stato</th></tr></thead>
+              <tbody><tr><td colspan="5">Nessun tavolo ancora registrato per questa serata.</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  const VENUES = ["Room 26", "In Space", "Zona Calda", "Grotta Aurelia", "Sunbay"];
+  const nav = document.getElementById("nav");
+  const overview = document.getElementById("overview");
+  const venue = document.getElementById("venue");
+  const title = document.getElementById("title");
+  const subtitle = document.getElementById("subtitle");
+
+  function el(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  function select(sel) {
+    const isAll = sel === "all";
+    title.textContent = isAll ? "Tutti i locali" : sel;
+    subtitle.textContent = isAll ? "Cinque locali · serata di oggi" : "Serata di oggi";
+    overview.hidden = !isAll;
+    venue.hidden = isAll;
+    nav.querySelectorAll("button").forEach((b) => {
+      b.setAttribute("aria-current", String(b.dataset.id === sel));
+    });
+  }
+
+  function navButton(id, label) {
+    const b = el("button", "nav-btn", label);
+    b.type = "button";
+    b.dataset.id = id;
+    b.addEventListener("click", () => select(id));
+    nav.appendChild(b);
+  }
+
+  navButton("all", "Panoramica");
+  VENUES.forEach((n) => navButton(n, n));
+
+  VENUES.forEach((n) => {
+    const c = el("button", "card venue-card");
+    c.type = "button";
+    c.appendChild(el("span", "name", n));
+    const stats = el("span", "stats");
+    ["Ingressi", "Tavoli", "Incasso"].forEach((l) => {
+      const s = el("span", "stat");
+      s.appendChild(el("b", "", "—"));
+      s.appendChild(el("span", "", l));
+      stats.appendChild(s);
+    });
+    c.appendChild(stats);
+    c.appendChild(el("span", "muted", "Nessuna serata attiva"));
+    c.addEventListener("click", () => select(n));
+    overview.appendChild(c);
+  });
+
+  select("all");
+</script>
+</body>
+</html>
